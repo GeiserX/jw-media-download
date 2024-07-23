@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 # Extract variables from the environment
 JW_LANG = os.environ.get('JW_LANG', 'S')
-JW_OUTPUT_PATH = os.environ.get('PATH', '/jworg')
+JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', '/jworg')
 JW_DB_PATH = os.environ.get('JW_DB_PATH', '/jworg/jw_media.db')
-JW_BROWSERLESS_KEY = os.environ.get('JW_BROWSERLESS_KEY')  # Replace 'YOUR_BROWSERLESS_KEY' with your actual key or set it in the environment
+JW_BROWSERLESS_KEY = os.environ.get('JW_BROWSERLESS_KEY')
 
 # Initialize SQLite database
 def init_db():

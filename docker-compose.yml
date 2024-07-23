@@ -1,0 +1,15 @@
+services:
+  jw-media-download:
+    build: .
+    #image: drumsergio/jw-media-download:0.0.1
+    volumes:
+      - /ShareMedia/jworg/es/assets:/jworg:rw #/mnt/user/ShareMedia used if used outside code-server - dind in use
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    privileged: true
+    environment:
+      - JW_LANG=S
+      - JW_OUTPUT_PATH=/jworg
+      - JW_BROWSERLESS_KEY=...
+      - JW_DB_PATH=/jworg/jw_media.db
