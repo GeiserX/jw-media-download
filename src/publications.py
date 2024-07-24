@@ -61,11 +61,11 @@ try:
     conn_state.commit()
 
     logging.info("Querying the Publication table")
-    cursor_catalog.execute("SELECT DISTINCT IssueTagNumber, Symbol FROM Publication")
+    cursor_catalog.execute("SELECT DISTINCT IssueTagNumber, Symbol, KeySymbol FROM Publication WHERE MepsLanguageId=1") # MepsLanguageId=1 is Spanish
     rows = cursor_catalog.fetchall()
 
     for row in rows:
-        issue_tag_number, symbol = row
+        issue_tag_number, symbol, keysymbol = row
         cursor_state.execute("SELECT State FROM PublicationState WHERE IssueTagNumber=? AND Symbol=?", (issue_tag_number, symbol))
         state = cursor_state.fetchone()
         
@@ -74,7 +74,6 @@ try:
             continue
 
         # Determine the URL for the publication
-        keysymbol = symbol[0] if symbol.startswith("w" or "g") else "km"
         if issue_tag_number != 0:
             url = f"https://app.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?langwritten={JW_LANG}&pub={keysymbol}&issue={issue_tag_number}&fileformat=jwpub"
         else:
@@ -107,12 +106,10 @@ try:
                 shutil.copyfileobj(file_response.raw, output_file)
             logging.info(f"Downloaded file to {output_file_path}.")
 
-
             # Update state as processed in the state database
             cursor_state.execute('''
             INSERT OR REPLACE INTO PublicationState (IssueTagNumber, Symbol, State)
-            VALUES (?, ?, ?
-            )
+            VALUES (?, ?, ?)
             ''', (issue_tag_number, symbol, "processed"))
             conn_state.commit()
 
