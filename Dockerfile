@@ -15,4 +15,4 @@ RUN playwright install
 
 COPY . .
 EXPOSE 80
-CMD ["python3", "-u", "src/media.py"]
+CMD ["python3", "-u", "src/publications.py"]

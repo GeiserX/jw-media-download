@@ -5,13 +5,14 @@ import sqlite3
 import os
 import json
 import logging
+import re
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 JW_LANG = os.environ.get('JW_LANG', 'S')
-JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', '/jworg')
-JW_DB_PATH = os.environ.get('JW_DB_PATH', '/jworg/jw_pubs.db')
+JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', 'D:/jworg')
+JW_DB_PATH = os.environ.get('JW_DB_PATH', 'D:/jworg/jw_pubs.db')
 
 # Create output directory if it doesn't exist
 if not os.path.exists(JW_OUTPUT_PATH):
@@ -42,15 +43,38 @@ try:
 
     # Step 3: Connect to the SQLite database
     logging.info("Connecting to the SQLite database.")
-    conn = sqlite3.connect('catalog.db')
-    cursor = conn.cursor()
+    conn_catalog = sqlite3.connect('catalog.db')
+    cursor_catalog = conn_catalog.cursor()
+
+    # Step 4: Create or connect to JW_DB_PATH
+    logging.info(f"Connecting to the state database at {JW_DB_PATH}.")
+    conn_state = sqlite3.connect(JW_DB_PATH)
+    cursor_state = conn_state.cursor()
+    cursor_state.execute('''
+    CREATE TABLE IF NOT EXISTS PublicationState (
+        IssueTagNumber INTEGER,
+        Symbol TEXT,
+        State TEXT,
+        PRIMARY KEY (IssueTagNumber, Symbol)
+    )
+    ''')
+    conn_state.commit()
 
     logging.info("Querying the Publication table")
-    cursor.execute("SELECT DISTINCT IssueTagNumber, Symbol, KeySymbol FROM Publication")
-    rows = cursor.fetchall()
+    cursor_catalog.execute("SELECT DISTINCT IssueTagNumber, Symbol FROM Publication")
+    rows = cursor_catalog.fetchall()
 
     for row in rows:
-        issue_tag_number, symbol, keysymbol = row
+        issue_tag_number, symbol = row
+        cursor_state.execute("SELECT State FROM PublicationState WHERE IssueTagNumber=? AND Symbol=?", (issue_tag_number, symbol))
+        state = cursor_state.fetchone()
+        
+        if state and state[0] == "processed":
+            logging.info(f"Skipping already processed entry: Symbol {symbol}, IssueTagNumber {issue_tag_number}")
+            continue
+
+        # Determine the URL for the publication
+        keysymbol = symbol[0] if symbol.startswith("w" or "g") else "km"
         if issue_tag_number != 0:
             url = f"https://app.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?langwritten={JW_LANG}&pub={keysymbol}&issue={issue_tag_number}&fileformat=jwpub"
         else:
@@ -68,15 +92,36 @@ try:
             logging.info(f"Downloading file from {download_url}.")
             file_response = requests.get(download_url, stream=True)
             file_response.raise_for_status()
-            output_file_path = os.path.join(JW_OUTPUT_PATH, f"{symbol}_{issue_tag_number}.jwpub")
+            filename = None
+            if 'Content-Disposition' in file_response.headers:
+                content_disposition = file_response.headers['Content-Disposition']
+                if 'filename=' in content_disposition:
+                    filename = content_disposition.split('filename=')[-1].strip('\"')
+
+            # Fallback to default naming convention if filename is None
+            if filename is None:
+                filename = f"{symbol}_{issue_tag_number}.jwpub"
+
+            output_file_path = os.path.join(JW_OUTPUT_PATH, filename)
             with open(output_file_path, "wb") as output_file:
                 shutil.copyfileobj(file_response.raw, output_file)
             logging.info(f"Downloaded file to {output_file_path}.")
+
+
+            # Update state as processed in the state database
+            cursor_state.execute('''
+            INSERT OR REPLACE INTO PublicationState (IssueTagNumber, Symbol, State)
+            VALUES (?, ?, ?
+            )
+            ''', (issue_tag_number, symbol, "processed"))
+            conn_state.commit()
+
         except Exception as e:
             logging.error(f"Failed to download or save file for symbol {symbol} and issue tag {issue_tag_number}: {e}")
 
-    # Close the database connection
-    conn.close()
+    # Close the database connections
+    conn_catalog.close()
+    conn_state.close()
     logging.info("Download complete.")
 
 except Exception as e:
