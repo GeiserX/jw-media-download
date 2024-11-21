@@ -11,8 +11,8 @@ import re
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 JW_LANG = os.environ.get('JW_LANG', 'S')
-JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', 'D:/jworg')
-JW_DB_PATH = os.environ.get('JW_DB_PATH', 'D:/jworg/jw_pubs.db')
+JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', '/jworg')
+JW_DB_PATH = os.environ.get('JW_DB_PATH', '/jworg/jw_pubs.db')
 
 # Create output directory if it doesn't exist
 if not os.path.exists(JW_OUTPUT_PATH):
@@ -47,6 +47,11 @@ try:
     cursor_catalog = conn_catalog.cursor()
 
     # Step 4: Create or connect to JW_DB_PATH
+    if not os.path.exists(os.path.dirname(JW_DB_PATH)):
+        os.makedirs(os.path.dirname(JW_DB_PATH))
+    if not os.path.exists(JW_DB_PATH):
+        logging.info(f"Database does not exist at {JW_DB_PATH}. Creating new database.")
+        open(JW_DB_PATH, 'w').close()
     logging.info(f"Connecting to the state database at {JW_DB_PATH}.")
     conn_state = sqlite3.connect(JW_DB_PATH)
     cursor_state = conn_state.cursor()

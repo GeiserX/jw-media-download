@@ -3,7 +3,7 @@ services:
     build: .
     #image: drumsergio/jw-media-download:0.0.1
     volumes:
-      - /mnt/d/jworg:/jworg:rw
+      - D:\jworg:/jworg:rw
     dns:
       - 8.8.8.8
       - 1.1.1.1
