@@ -1,18 +1,18 @@
 services:
-  jw-media-download-publications:
-    build:
-      context: .
-      dockerfile: Dockerfile-publications
-    #image: drumsergio/jw-media-download:0.0.1
-    volumes:
-      - D:\jworg:/jworg:rw
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
-    privileged: true
-    environment:
-      - JW_LANG=S
-      - JW_OUTPUT_PATH=/jworg
+  # jw-media-download-publications:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile-publications
+  #   #image: drumsergio/jw-media-download:0.0.1
+  #   volumes:
+  #     - D:\jworg:/jworg:rw
+  #   # dns:
+  #   #   - 8.8.8.8
+  #   #   - 1.1.1.1
+  #   privileged: true
+  #   environment:
+  #     - JW_LANG=S
+  #     - JW_OUTPUT_PATH=/jworg
 
   jw-media-download-media:
     build:
@@ -21,9 +21,9 @@ services:
     #image: drumsergio/jw-media-download:0.0.1
     volumes:
       - D:\jworg:/jworg:rw
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    # dns:
+    #   - 8.8.8.8
+    #   - 1.1.1.1
     privileged: true
     environment:
       - JW_LANG=S
