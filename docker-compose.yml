@@ -9,16 +9,16 @@ services:
     privileged: true
     environment:
       - JW_LANG=S
-      - JW_OUTPUT_PATH=/jworg
+      - JW_OUTPUT_PATH=/jworg/jwpubs
 
-  jw-media-download-media:
-    build:
-      context: .
-      dockerfile: Dockerfile-media
-    #image: drumsergio/jw-media-download:0.0.1
-    volumes:
-      - E:\jworg:/jworg:rw
-    privileged: true
-    environment:
-      - JW_LANG=S
-      - JW_OUTPUT_PATH=/jworg
+  # jw-media-download-media:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile-media
+  #   #image: drumsergio/jw-media-download:0.0.1
+  #   volumes:
+  #     - E:\jworg:/jworg:rw
+  #   privileged: true
+  #   environment:
+  #     - JW_LANG=S
+  #     - JW_OUTPUT_PATH=/jworg/vtts

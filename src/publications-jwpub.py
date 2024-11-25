@@ -15,6 +15,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 JW_LANG = os.environ.get('JW_LANG', 'S')  # Default to 'S' for Spanish
 JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', '/jworg/jwpubs/')
 JW_DB_PATH = os.environ.get('JW_DB_PATH', '/jworg/jwpubs/jw_pubs.db')
+MEPSUNIT_DB_PATH = os.environ.get('MEPSUNIT_DB_PATH', '/app/db/mepsunit.db')  # Path to mepsunit.db
 
 # Create output directory if it doesn't exist
 if not os.path.exists(JW_OUTPUT_PATH):
@@ -88,11 +89,33 @@ def fetch_catalog_db():
         logging.debug(f"Exception details: {traceback.format_exc()}")
         return None
 
-def get_publications(conn_catalog):
+def get_meps_language_id(jw_lang, mepsunit_db_path):
+    try:
+        # Open the mepsunit.db database
+        logging.info(f"Opening mepsunit.db at {mepsunit_db_path}")
+        conn = sqlite3.connect(mepsunit_db_path)
+        cursor = conn.cursor()
+        # Query the Language table
+        cursor.execute("SELECT LanguageId FROM Language WHERE Symbol = ?", (jw_lang,))
+        result = cursor.fetchone()
+        conn.close()
+        if result:
+            meps_language_id = result[0]
+            logging.info(f"Retrieved MepsLanguageId {meps_language_id} for language '{jw_lang}'")
+            return meps_language_id
+        else:
+            logging.error(f"No MepsLanguageId found for language '{jw_lang}' in mepsunit.db")
+            return None
+    except Exception as e:
+        logging.error(f"Error accessing mepsunit.db: {e}")
+        logging.debug(f"Exception details: {traceback.format_exc()}")
+        return None
+
+def get_publications(conn_catalog, meps_language_id):
     try:
         cursor_catalog = conn_catalog.cursor()
-        logging.info("Querying the Publication table for language ID 1 (Spanish).")
-        cursor_catalog.execute("SELECT DISTINCT IssueTagNumber, Symbol, KeySymbol FROM Publication WHERE MepsLanguageId=1")
+        logging.info(f"Querying the Publication table for MepsLanguageId {meps_language_id}.")
+        cursor_catalog.execute("SELECT DISTINCT IssueTagNumber, Symbol, KeySymbol FROM Publication WHERE MepsLanguageId=?", (meps_language_id,))
         rows = cursor_catalog.fetchall()
         logging.info(f"Total publications found: {len(rows)}")
         return rows
@@ -109,6 +132,12 @@ def download_jwpubs():
         return
     cursor_state = conn_state.cursor()
 
+    # Get MepsLanguageId corresponding to JW_LANG
+    meps_language_id = get_meps_language_id(JW_LANG, MEPSUNIT_DB_PATH)
+    if meps_language_id is None:
+        logging.error("Failed to retrieve MepsLanguageId. Exiting.")
+        return
+
     db_path = fetch_catalog_db()
     if db_path is None:
         logging.error("Failed to fetch the catalog database. Exiting.")
@@ -123,7 +152,7 @@ def download_jwpubs():
         return
 
     # Get the list of publications
-    publications = get_publications(conn_catalog)
+    publications = get_publications(conn_catalog, meps_language_id)
 
     for idx, (issue_tag_number, symbol, keysymbol) in enumerate(publications, 1):
         logging.info(f"Processing publication {idx}/{len(publications)}: Symbol={symbol}, IssueTagNumber={issue_tag_number}, KeySymbol={keysymbol}")
