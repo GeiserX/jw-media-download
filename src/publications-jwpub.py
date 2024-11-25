@@ -1,5 +1,3 @@
-# download_jwpubs.py
-
 import requests
 import gzip
 import shutil
@@ -14,9 +12,9 @@ import time
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-JW_LANG = os.environ.get('JW_LANG', 'S')
-JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', '/jworg/')
-JW_DB_PATH = os.environ.get('JW_DB_PATH', '/jworg/jw_pubs.db')
+JW_LANG = os.environ.get('JW_LANG', 'S')  # Default to 'S' for Spanish
+JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', '/jworg/jwpubs/')
+JW_DB_PATH = os.environ.get('JW_DB_PATH', '/jworg/jwpubs/jw_pubs.db')
 
 # Create output directory if it doesn't exist
 if not os.path.exists(JW_OUTPUT_PATH):
@@ -62,8 +60,15 @@ def fetch_catalog_db():
         logging.info(f"Downloading catalog from {catalog_url}.")
         response = requests.get(catalog_url, stream=True)
         response.raise_for_status()
-        gz_path = "catalog.db.gz"
-        db_path = "catalog.db"
+
+        # Ensure the output directory exists
+        if not os.path.exists(JW_OUTPUT_PATH):
+            os.makedirs(JW_OUTPUT_PATH)
+
+        # Define paths for .gz and .db files in the output directory
+        gz_path = os.path.join(JW_OUTPUT_PATH, "catalog.db.gz")
+        db_path = os.path.join(JW_OUTPUT_PATH, "catalog.db")
+
         with open(gz_path, "wb") as catalog_file:
             catalog_file.write(response.content)
 
@@ -72,6 +77,10 @@ def fetch_catalog_db():
         with gzip.open(gz_path, "rb") as f_in:
             with open(db_path, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
+
+        # Step 3: Delete the .gz file after uncompressing
+        logging.info("Deleting catalog.db.gz after extraction.")
+        os.remove(gz_path)
 
         return db_path
     except Exception as e:
@@ -106,7 +115,7 @@ def download_jwpubs():
         return
 
     try:
-        # Connect to the catalog SQLite database
+        # Connect to the catalog SQLite database using the full path
         logging.info("Connecting to the catalog SQLite database.")
         conn_catalog = sqlite3.connect(db_path)
     except Exception as e:
@@ -218,14 +227,8 @@ def download_jwpubs():
     conn_catalog.close()
     conn_state.close()
 
-    # Clean up temporary files
-    try:
-        os.remove("catalog.db")
-        os.remove("catalog.db.gz")
-        logging.info("Temporary files removed.")
-    except Exception as e:
-        logging.warning(f"Could not remove temporary files: {e}")
-        logging.debug(f"Exception details: {traceback.format_exc()}")
+    # Cleanup complete
+    logging.info("Cleanup complete.")
 
     logging.info("Download complete.")
 

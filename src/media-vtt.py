@@ -1,5 +1,3 @@
-# download_vtts.py
-
 import requests
 import gzip
 import shutil
@@ -13,9 +11,9 @@ import time
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-JW_LANG = os.environ.get('JW_LANG', 'S')
-JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', '/jworg')
-JW_DB_PATH = os.environ.get('JW_DB_PATH', '/jworg/jw_media.db')
+JW_LANG = os.environ.get('JW_LANG', 'S')  # Default to 'S' for Spanish
+JW_OUTPUT_PATH = os.environ.get('JW_OUTPUT_PATH', '/jworg/vtts')
+JW_DB_PATH = os.environ.get('JW_DB_PATH', '/jworg/vtts/jw_media.db')
 
 # Create output directory if it doesn't exist
 if not os.path.exists(JW_OUTPUT_PATH):
@@ -96,6 +94,10 @@ def download_extract_json(catalog_url, output_path):
         with gzip.open(gz_path, "rb") as f_in:
             with open(json_path, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
+
+        # Delete the .gz file after extraction
+        logging.info(f"Deleting {gz_path} after extraction.")
+        os.remove(gz_path)
 
         return json_path
 
